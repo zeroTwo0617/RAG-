@@ -1,0 +1,20 @@
+services:
+  pg:
+    image: pgvector/pgvector:pg16
+    container_name: ragkb-pg
+    environment:
+      POSTGRES_USER: ragkb
+      POSTGRES_PASSWORD: ragkb
+      POSTGRES_DB: ragkb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ragkb-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ragkb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ragkb-pg-data:
