@@ -20,7 +20,7 @@
     <properties>
         <java.version>19</java.version>
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
-        <pgvector.version>0.3.6</pgvector.version>
+        <pgvector.version>0.1.6</pgvector.version>
         <jjwt.version>0.12.5</jjwt.version>
         <springdoc.version>2.3.0</springdoc.version>
     </properties>
@@ -55,7 +55,7 @@
 
         <!-- pgvector JDBC 向量类型 -->
         <dependency>
-            <groupId>io.github.pgvector</groupId>
+            <groupId>com.pgvector</groupId>
             <artifactId>pgvector</artifactId>
             <version>${pgvector.version}</version>
         </dependency>

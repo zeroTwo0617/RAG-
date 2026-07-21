@@ -18,7 +18,7 @@ public interface ChunkMapper extends BaseMapper<Chunk> {
 
     @Insert("INSERT INTO chunk (doc_id, section, chunk_index, content, token_count, embedding) " +
             "VALUES (#{docId}, #{section}, #{chunkIndex}, #{content}, #{tokenCount}, " +
-            "#{embedding, typeHandler=com.ragdemo.mapper.VectorTypeHandler})")
+            "#{embedding, typeHandler=com.ragdemo.mapper.VectorTypeHandler}::vector)")
     void insertChunk(@Param("docId") String docId,
                      @Param("section") String section,
                      @Param("chunkIndex") int chunkIndex,
@@ -31,7 +31,7 @@ public interface ChunkMapper extends BaseMapper<Chunk> {
      * 关联 document 取文档名，便于前端展示引用来源。
      */
     @Select("SELECT c.doc_id, d.name AS doc_name, c.section, c.chunk_index, c.content, " +
-            "(c.embedding <=> #{queryVec, typeHandler=com.ragdemo.mapper.VectorTypeHandler}) AS distance " +
+            "(c.embedding <=> #{queryVec, typeHandler=com.ragdemo.mapper.VectorTypeHandler}::vector) AS distance " +
             "FROM chunk c JOIN document d ON c.doc_id = d.doc_id " +
             "ORDER BY distance LIMIT #{topK}")
     @Results({

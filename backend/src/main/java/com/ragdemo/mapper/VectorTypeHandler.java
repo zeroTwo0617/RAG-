@@ -1,6 +1,6 @@
 package com.ragdemo.mapper;
 
-import io.github.pgvector.PGvector;
+import com.pgvector.PGvector;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 
@@ -11,7 +11,8 @@ import java.sql.SQLException;
 
 /**
  * float[] <-> pgvector 类型处理器。
- * pgvector 接受文本格式 "[0.1,0.2,...]"，故以 setString 写入；
+ * 用官方 PGvector 类把 float[] 转成向量字面量字符串 "[0.1,0.2,...]"，
+ * 以 setString 写入；SQL 侧通过 `?::vector` 强转为 vector 类型（无需 registerTypes，连接池安全）。
  * 检索时把查询向量同样通过该处理器转为文本参数传给 <-> 算子。
  */
 public class VectorTypeHandler extends BaseTypeHandler<float[]> {
@@ -19,7 +20,7 @@ public class VectorTypeHandler extends BaseTypeHandler<float[]> {
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, float[] parameter, JdbcType jdbcType)
             throws SQLException {
-        ps.setString(i, PGvector.toSql(parameter));
+        ps.setString(i, new PGvector(parameter).toString());
     }
 
     @Override
