@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 490" width="100%" role="img">
+  <title>RAG 功能模块全景</title>
+  <desc>按简历含金量分三层：MVP 必做（知识库管理、问答对话、检索核心、用户登录）、进阶（Rerank、分块可配、多轮记忆、管理后台、反馈）、加分（评测集、指标看板、自动化测试、CI/CD、容器化、多格式）。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <text x="40" y="28" font-family="sans-serif" font-size="15" font-weight="500" fill="#2C2C2A">RAG 功能模块全景（按简历含金量）</text>
+
+  <g>
+    <rect x="40" y="50" width="120" height="115" rx="12" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+    <text x="100" y="98" font-family="sans-serif" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" dominant-baseline="central">MVP</text>
+    <text x="100" y="118" font-family="sans-serif" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" dominant-baseline="central">必做</text>
+
+    <rect x="175" y="52" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#185FA5" stroke-width="0.5"/>
+    <text x="287" y="70" font-family="sans-serif" font-size="12" fill="#0C447C" text-anchor="middle" dominant-baseline="central">知识库管理（上传/入库）</text>
+    <rect x="414" y="52" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#185FA5" stroke-width="0.5"/>
+    <text x="526" y="70" font-family="sans-serif" font-size="12" fill="#0C447C" text-anchor="middle" dominant-baseline="central">问答对话（SSE 流式）</text>
+    <rect x="175" y="96" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#185FA5" stroke-width="0.5"/>
+    <text x="287" y="114" font-family="sans-serif" font-size="12" fill="#0C447C" text-anchor="middle" dominant-baseline="central">检索核心（混合召回）</text>
+    <rect x="414" y="96" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#185FA5" stroke-width="0.5"/>
+    <text x="526" y="114" font-family="sans-serif" font-size="12" fill="#0C447C" text-anchor="middle" dominant-baseline="central">用户登录（JWT）</text>
+  </g>
+
+  <g>
+    <rect x="40" y="195" width="120" height="115" rx="12" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="100" y="243" font-family="sans-serif" font-size="13" font-weight="500" fill="#3C3489" text-anchor="middle" dominant-baseline="central">进阶</text>
+    <text x="100" y="263" font-family="sans-serif" font-size="13" font-weight="500" fill="#3C3489" text-anchor="middle" dominant-baseline="central">拉开差距</text>
+
+    <rect x="175" y="197" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="287" y="215" font-family="sans-serif" font-size="12" fill="#3C3489" text-anchor="middle" dominant-baseline="central">Rerank 精排</text>
+    <rect x="414" y="197" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="526" y="215" font-family="sans-serif" font-size="12" fill="#3C3489" text-anchor="middle" dominant-baseline="central">分块策略可配</text>
+    <rect x="175" y="241" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="287" y="259" font-family="sans-serif" font-size="12" fill="#3C3489" text-anchor="middle" dominant-baseline="central">多轮对话记忆</text>
+    <rect x="414" y="241" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="526" y="259" font-family="sans-serif" font-size="12" fill="#3C3489" text-anchor="middle" dominant-baseline="central">管理后台</text>
+    <rect x="175" y="285" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#534AB7" stroke-width="0.5"/>
+    <text x="287" y="303" font-family="sans-serif" font-size="12" fill="#3C3489" text-anchor="middle" dominant-baseline="central">反馈闭环</text>
+  </g>
+
+  <g>
+    <rect x="40" y="340" width="120" height="115" rx="12" fill="#EAF3DE" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="100" y="388" font-family="sans-serif" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle" dominant-baseline="central">加分</text>
+    <text x="100" y="408" font-family="sans-serif" font-size="13" font-weight="500" fill="#27500A" text-anchor="middle" dominant-baseline="central">面试谈资</text>
+
+    <rect x="175" y="342" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="287" y="360" font-family="sans-serif" font-size="12" fill="#27500A" text-anchor="middle" dominant-baseline="central">评测集 + 指标</text>
+    <rect x="414" y="342" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="526" y="360" font-family="sans-serif" font-size="12" fill="#27500A" text-anchor="middle" dominant-baseline="central">指标看板</text>
+    <rect x="175" y="386" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="287" y="404" font-family="sans-serif" font-size="12" fill="#27500A" text-anchor="middle" dominant-baseline="central">自动化测试</text>
+    <rect x="414" y="386" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="526" y="404" font-family="sans-serif" font-size="12" fill="#27500A" text-anchor="middle" dominant-baseline="central">CI / CD</text>
+    <rect x="175" y="430" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="287" y="448" font-family="sans-serif" font-size="12" fill="#27500A" text-anchor="middle" dominant-baseline="central">容器化部署</text>
+    <rect x="414" y="430" width="225" height="36" rx="8" fill="#FFFFFF" stroke="#3B6D11" stroke-width="0.5"/>
+    <text x="526" y="448" font-family="sans-serif" font-size="12" fill="#27500A" text-anchor="middle" dominant-baseline="central">多格式解析</text>
+  </g>
+</svg>
