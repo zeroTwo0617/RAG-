@@ -46,11 +46,10 @@
             <version>${mybatis-plus.version}</version>
         </dependency>
 
-        <!-- PostgreSQL 驱动 -->
+        <!-- PostgreSQL 驱动（compile 作用域：PGvector 类在编译期依赖 pgjdbc 的 PGBinaryObject） -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
         </dependency>
 
         <!-- pgvector JDBC 向量类型 -->
