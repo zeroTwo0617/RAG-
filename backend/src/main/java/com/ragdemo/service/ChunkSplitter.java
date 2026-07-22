@@ -35,9 +35,9 @@ public class ChunkSplitter {
 
         int start = 0;
         while (start < text.length()) {
+            // 以 maxChars 为窗口取一段，优先在窗口后半段找"换行/句末标点"作为更自然的切分点
             int end = Math.min(start + maxChars, text.length());
             int breakAt = end;
-            // 在窗口后半段寻找换行/句末标点作为更自然的切分点
             for (int i = end - 1; i > start + maxChars / 2; i--) {
                 char c = text.charAt(i);
                 if (c == '\n' || c == '。' || c == '.' || c == '！' || c == '？' || c == '!' || c == '?') {
@@ -47,9 +47,10 @@ public class ChunkSplitter {
             }
             out.add(unit(heading, text.substring(start, breakAt).trim()));
 
+            // 下一段从"本段结尾往回退 overlap 字"开始 —— 重叠窗口让跨边界的知识点能被完整检索到
             int next = breakAt - overlap;
             if (next <= start) {
-                next = breakAt; // 防止死循环
+                next = breakAt; // 重叠抵消了前进量则强制前移，防止死循环
             }
             start = next;
             if (start >= text.length()) {

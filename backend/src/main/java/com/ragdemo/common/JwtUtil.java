@@ -16,9 +16,11 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
+    /** JWT 签名密钥（来自配置 jwt.secret，生产环境务必改掉默认值，否则可被伪造） */
     @Value("${jwt.secret}")
     private String secret;
 
+    /** 有效期（秒），默认 86400=1 天 */
     @Value("${jwt.expiration:86400}")
     private Long expiration;
 

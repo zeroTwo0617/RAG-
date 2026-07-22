@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { ChunkSearchResult } from '@/types'
 
+// 引用来源面板：展示 AI 回答引用的文本块，及其相似度百分比
 defineProps<{ sources: ChunkSearchResult[] }>()
 
+// 把余弦距离换算成"相似度 %"：优先用后端算好的 score，否则用 1-distance 兜底
 function scoreOf(s: ChunkSearchResult): number {
   const v = s.score ?? 1 - (s.distance ?? 1)
   return Math.round(v * 100)

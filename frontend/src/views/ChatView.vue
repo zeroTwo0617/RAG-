@@ -6,21 +6,23 @@ import MessageBubble from '@/components/MessageBubble.vue'
 import type { ChatMessage } from '@/types'
 
 const chatStore = useChatStore()
-const input = ref('')
-const loading = ref(false)
-const scrollRef = ref<HTMLElement | null>(null)
+const input = ref('')           // 输入框绑定值
+const loading = ref(false)      // 是否正在请求（控制"思考中"与按钮 loading）
+const scrollRef = ref<HTMLElement | null>(null)  // 聊天滚动容器，用于自动滚到底部
 
+// 发送逻辑：先把自己消息压入 store，再调后端 /chat，把回答与引用来源填回同一条 AI 消息
 async function send() {
   const q = input.value.trim()
   if (!q || loading.value) return
   chatStore.add({ role: 'user', content: q })
   input.value = ''
   loading.value = true
+  // 先放一条空的 AI 消息占位，请求回来再回填（流式时代这里会变成逐字追加）
   const aiMsg: ChatMessage = { role: 'ai', content: '' }
   chatStore.add(aiMsg)
   scrollToBottom()
   try {
-    const res = await ask(q, 5)
+    const res = await ask(q, 5)   // topK=5，召回前 5 个最相似分块
     aiMsg.content = res.data.answer
     aiMsg.sources = res.data.sources
     aiMsg.queryEmbedded = res.data.queryEmbedded
@@ -32,6 +34,7 @@ async function send() {
   }
 }
 
+// 滚动到底部（nextTick 确保 DOM 已更新）
 function scrollToBottom() {
   nextTick(() => {
     if (scrollRef.value) {
@@ -40,6 +43,7 @@ function scrollToBottom() {
   })
 }
 
+// 键盘事件：Enter 发送，Shift+Enter 换行
 function onEnter(e: KeyboardEvent) {
   if (!e.shiftKey) {
     e.preventDefault()

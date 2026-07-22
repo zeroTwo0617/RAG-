@@ -3,6 +3,9 @@ package com.ragdemo.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+/**
+ * 登录请求体：POST /api/auth/login
+ */
 @Data
 public class LoginRequest {
 

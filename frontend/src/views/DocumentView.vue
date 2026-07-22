@@ -6,11 +6,12 @@ import { useDocumentStore } from '@/store/document'
 import type { DocumentDetailVO } from '@/types'
 
 const store = useDocumentStore()
-const loading = ref(false)
-const detailVisible = ref(false)
-const detail = ref<DocumentDetailVO | null>(null)
-const detailLoading = ref(false)
+const loading = ref(false)          // 列表加载中
+const detailVisible = ref(false)    // 详情弹窗显隐
+const detail = ref<DocumentDetailVO | null>(null)  // 当前查看的文档详情
+const detailLoading = ref(false)    // 详情加载中
 
+// 拉取文档列表（默认第 1 页，每页 20），写入 store
 async function load(page = 1) {
   loading.value = true
   try {
@@ -21,16 +22,18 @@ async function load(page = 1) {
   }
 }
 
+// 上传回调：el-upload 设了 auto-upload=false，这里手动拿原始文件调后端入库
 async function onUpload(file: { raw: File }) {
   try {
     const res = await uploadDocument(file.raw)
     ElMessage.success(`入库成功：${res.data.name}，共 ${res.data.chunkCount} 个分块`)
-    load()
+    load()  // 刷新列表
   } catch (e) {
-    // 错误已由请求拦截器提示
+    // 错误已由请求拦截器统一弹提示，这里无需重复处理
   }
 }
 
+// 打开详情弹窗并加载该文档的分块预览
 async function openDetail(id: string) {
   detailLoading.value = true
   detailVisible.value = true
@@ -42,17 +45,19 @@ async function openDetail(id: string) {
   }
 }
 
+// 删除：先二次确认，再调后端删除并刷新列表
 async function remove(id: string) {
   try {
     await ElMessageBox.confirm('确定删除该文档及其所有分块？', '提示', { type: 'warning' })
   } catch {
-    return
+    return  // 用户取消
   }
   await deleteDocument(id)
   ElMessage.success('已删除')
   load()
 }
 
+// 页面挂载即加载一次列表
 onMounted(load)
 </script>
 

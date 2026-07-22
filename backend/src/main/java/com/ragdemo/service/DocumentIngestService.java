@@ -39,6 +39,7 @@ public class DocumentIngestService {
     }
 
     public Document ingest(MultipartFile file) {
+        // 1) 校验文件：必须是非空 .md
         String name = file.getOriginalFilename();
         if (name == null || !name.toLowerCase().endsWith(".md")) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "仅支持 .md 文件");
@@ -53,14 +54,17 @@ public class DocumentIngestService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "文件内容为空");
         }
 
+        // 2) 生成业务主键 docId，并把 Markdown 按标题切分为若干段落块
         String docId = UUID.randomUUID().toString().replace("-", "");
         List<MarkdownParser.ParsedSection> sections = markdownParser.parse(content);
 
+        // 3) 对每个段落块再二次切分（长块拆小 + 相邻重叠），逐块向量化并写入 chunk 表
         int chunkIndex = 0;
         int count = 0;
         for (MarkdownParser.ParsedSection section : sections) {
             List<ChunkSplitter.ChunkUnit> units = chunkSplitter.split(section, 400, 80);
             for (ChunkSplitter.ChunkUnit unit : units) {
+                // 文本 -> 1536 维向量（无 key 时用本地 hash 兜底）
                 float[] vector = embeddingService.embed(unit.getContent());
                 chunkMapper.insertChunk(
                         docId,
@@ -74,6 +78,7 @@ public class DocumentIngestService {
             }
         }
 
+        // 4) 写入 document 元信息（含真实 chunkCount），返回
         Document doc = new Document();
         doc.setDocId(docId);
         doc.setName(name);

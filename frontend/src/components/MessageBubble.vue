@@ -2,6 +2,8 @@
 import type { ChatMessage } from '@/types'
 import SourcePanel from './SourcePanel.vue'
 
+// 单条消息气泡：根据 role 决定头像与左右布局；
+// AI 消息若携带 sources 则额外渲染引用来源面板（RAG 的核心卖点）
 defineProps<{ message: ChatMessage }>()
 </script>
 

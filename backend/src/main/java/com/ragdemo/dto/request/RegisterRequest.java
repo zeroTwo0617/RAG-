@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+/**
+ * 注册请求体：POST /api/auth/register（M1 为内存用户，仅演示流程）
+ */
 @Data
 public class RegisterRequest {
 

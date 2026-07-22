@@ -16,6 +16,8 @@ import java.util.List;
 @Mapper
 public interface ChunkMapper extends BaseMapper<Chunk> {
 
+    // 写入分块：embedding 经 VectorTypeHandler 序列化为 "[0.1,0.2,...]" 字符串，
+    // 再用 `::vector` 强转成 PostgreSQL 的 vector 类型存进向量列
     @Insert("INSERT INTO chunk (doc_id, section, chunk_index, content, token_count, embedding) " +
             "VALUES (#{docId}, #{section}, #{chunkIndex}, #{content}, #{tokenCount}, " +
             "#{embedding, typeHandler=com.ragdemo.mapper.VectorTypeHandler}::vector)")
@@ -27,8 +29,11 @@ public interface ChunkMapper extends BaseMapper<Chunk> {
                      @Param("embedding") float[] embedding);
 
     /**
-     * 向量余弦检索：embedding <=> queryVec 得到余弦距离，排序取 Top-K。
-     * 关联 document 取文档名，便于前端展示引用来源。
+     * 向量余弦检索（PG 专属 SQL，重点理解）：
+     *  - `c.embedding <=> ?` 里 `<=>` 是 pgvector 的"余弦距离"算子，越小越相似；
+     *  - `?::vector` 把传入的向量字符串强转成 vector 类型（MySQL 9.0 等价写法是 DISTANCE(...)）；
+     *  - 结果 distance 即余弦距离，上层用 1-distance 得到"相似度 %"。
+     * 关联 document 取文档名，便于前端展示引用来源；ORDER BY distance LIMIT topK 即 Top-K 召回。
      */
     @Select("SELECT c.doc_id, d.name AS doc_name, c.section, c.chunk_index, c.content, " +
             "(c.embedding <=> #{queryVec, typeHandler=com.ragdemo.mapper.VectorTypeHandler}::vector) AS distance " +

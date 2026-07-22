@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 
+// 根布局：顶部 header（品牌 + 导航菜单）+ 主体区（路由出口）
+// useRoute 拿到当前路由，用于高亮当前菜单项
 const route = useRoute()
 </script>
 
