@@ -5,6 +5,7 @@ import com.ragdemo.dto.request.ChatRequest;
 import com.ragdemo.dto.response.ChatSubmitResponse;
 import com.ragdemo.dto.response.ChatTaskResult;
 import com.ragdemo.service.ChatTaskService;
+import com.ragdemo.service.LlmClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -17,15 +18,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api")
 @Tag(name = "问答")
 public class ChatController {
 
     private final ChatTaskService chatTaskService;
+    private final LlmClient llmClient;
 
-    public ChatController(ChatTaskService chatTaskService) {
+    public ChatController(ChatTaskService chatTaskService, LlmClient llmClient) {
         this.chatTaskService = chatTaskService;
+        this.llmClient = llmClient;
     }
 
     @PostMapping("/chat")
@@ -75,5 +80,16 @@ public class ChatController {
         emitter.onCompletion(() -> chatTaskService.removeEmitter(taskId));
         emitter.onTimeout(() -> chatTaskService.removeEmitter(taskId));
         return emitter;
+    }
+
+    @GetMapping("/chat/llm-status")
+    @Operation(summary = "自检：运行时是否拿到 LLM key（可用于确认是否走真·大模型生成）")
+    public Result<Map<String, Object>> llmStatus() {
+        boolean available = llmClient.available();
+        return Result.success(Map.of(
+                "available", available,
+                "mode", available ? "llm-stream" : "extractive-fallback",
+                "hint", available ? "已接入大模型，答案由 LLM 生成" : "未配置 LLM_API_KEY，已降级为原文片段拼接（非 LLM 生成）"
+        ));
     }
 }

@@ -36,7 +36,9 @@ embedding:
   dim: 1536
 
 # LLM 生成配置（M2 流式生成答案用，OpenAI 兼容协议，如 DeepSeek）
-# base-url 须以 /v1 结尾，代码会拼 /chat/completions；key 走环境变量，切勿硬编码进仓库
+# base-url 须以 /v1 结尾，代码会拼 /chat/completions。
+# key 优先级：环境变量 LLM_API_KEY > 环境变量 EMBEDDING_API_KEY > 空（此时降级抽取式）。
+# 不想配环境变量时，可建 gitignored 的 application-local.yml 直接写 key，并激活 local profile（详见 application-local.yml.example）。
 llm:
   api:
     base-url: ${LLM_API_BASE_URL:https://api.deepseek.com/v1}
