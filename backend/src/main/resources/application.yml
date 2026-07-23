@@ -29,9 +29,9 @@ mybatis-plus:
 embedding:
   provider: ${EMBEDDING_PROVIDER:auto}
   api:
-    base-url: ${EMBEDDING_API_BASE_URL:https://api.openai.com/v1}
+    base-url: ${EMBEDDING_API_BASE_URL:https://api.deepseek.com/v1/chat/completions}
     key: ${EMBEDDING_API_KEY:}
-    model: ${EMBEDDING_API_MODEL:text-embedding-3-small}
+    model: ${EMBEDDING_API_MODEL:deepseek-v4-flash}
   dim: 1536
 
 # JWT 配置

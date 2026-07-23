@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
-import { ask } from '@/api/chat'
+import { ask, getChatResult } from '@/api/chat'
 import { useChatStore } from '@/store/chat'
 import MessageBubble from '@/components/MessageBubble.vue'
 import type { ChatMessage } from '@/types'
@@ -10,27 +10,61 @@ const input = ref('')           // 输入框绑定值
 const loading = ref(false)      // 是否正在请求（控制"思考中"与按钮 loading）
 const scrollRef = ref<HTMLElement | null>(null)  // 聊天滚动容器，用于自动滚到底部
 
-// 发送逻辑：先把自己消息压入 store，再调后端 /chat，把回答与引用来源填回同一条 AI 消息
+// 发送逻辑：先压入用户消息与一条空 AI 占位（带 taskId），再轮询任务状态异步回填答案。
+// 任务轮询让发送与响应解耦——用户消息即时上屏，AI 气泡实时显示「检索中 / 思考中 / 完成」，
+// 答案回来立即呈现，不必干等整段请求返回（也为 M2 流式生成预留了同样的轮询通道）。
 async function send() {
   const q = input.value.trim()
   if (!q || loading.value) return
   chatStore.add({ role: 'user', content: q })
   input.value = ''
   loading.value = true
-  // 先放一条空的 AI 消息占位，请求回来再回填（流式时代这里会变成逐字追加）
-  const aiMsg: ChatMessage = { role: 'ai', content: '' }
+  // 占位 AI 消息：先给 taskId 与中间状态，轮询回来再回填内容
+  const aiMsg: ChatMessage = {
+    role: 'ai',
+    content: '',
+    status: 'pending',
+    taskId: '',
+  }
   chatStore.add(aiMsg)
   scrollToBottom()
+  let timer: ReturnType<typeof setInterval> | null = null
   try {
-    const res = await ask(q, 5)   // topK=5，召回前 5 个最相似分块
-    aiMsg.content = res.data.answer
-    aiMsg.sources = res.data.sources
-    aiMsg.queryEmbedded = res.data.queryEmbedded
+    // 1) 提交问题，后端立即返回 taskId（不阻塞生成）
+    const submitRes = await ask(q, 5)
+    const taskId = submitRes.data.taskId
+    aiMsg.taskId = taskId
+    aiMsg.queryEmbedded = true
+    // 2) 轮询任务状态，直到完成或失败
+    timer = setInterval(async () => {
+      try {
+        const r = await getChatResult(taskId)
+        const st = r.data.status
+        aiMsg.status = st
+        if (st === 'completed') {
+          const ans = r.data.answer
+          aiMsg.content = ans && ans.trim()
+            ? ans
+            : '未在知识库中找到相关内容，请先上传笔记，或换个问法试试。'
+          aiMsg.sources = r.data.sources
+          if (timer) clearInterval(timer)
+          loading.value = false
+          scrollToBottom()
+        } else if (st === 'failed') {
+          aiMsg.content = '抱歉，查询出错，请稍后重试。'
+          if (timer) clearInterval(timer)
+          loading.value = false
+          scrollToBottom()
+        }
+      } catch (e) {
+        aiMsg.content = '抱歉，查询出错，请稍后重试。'
+        if (timer) clearInterval(timer)
+        loading.value = false
+      }
+    }, 800)
   } catch (e) {
     aiMsg.content = '抱歉，查询出错，请稍后重试。'
-  } finally {
     loading.value = false
-    scrollToBottom()
   }
 }
 

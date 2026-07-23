@@ -46,8 +46,17 @@ export interface ChunkSearchResult {
   score?: number     // 相似度 = 1 - distance（0~1）
 }
 
-// 问答返回：M1 为抽取式答案（拼接 Top-K 片段）
-export interface ChatResponse {
+// 提交问答的返回：后端同步生成答案后立即返回（M1 抽取式，非流式）
+export interface ChatSubmitResponse {
+  taskId: string
+  answer: string
+  sources: ChunkSearchResult[]
+  queryEmbedded: boolean
+}
+
+// 轮询问答结果：前端按 taskId 轮询拿到的最终状态与答案
+export interface ChatTaskResult {
+  status: 'completed' | 'failed'
   answer: string
   sources: ChunkSearchResult[]
   queryEmbedded: boolean
@@ -66,4 +75,6 @@ export interface ChatMessage {
   content: string
   sources?: ChunkSearchResult[]    // 仅 ai 消息携带引用来源
   queryEmbedded?: boolean
+  status?: 'pending' | 'completed' | 'failed'  // 异步任务轮询状态：生成中/完成/失败
+  taskId?: string                  // 关联的问答任务 ID（轮询用）
 }
