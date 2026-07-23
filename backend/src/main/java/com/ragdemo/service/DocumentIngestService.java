@@ -6,6 +6,7 @@ import com.ragdemo.entity.Document;
 import com.ragdemo.mapper.ChunkMapper;
 import com.ragdemo.mapper.DocumentMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
@@ -38,6 +39,7 @@ public class DocumentIngestService {
         this.chunkSplitter = chunkSplitter;
     }
 
+    @Transactional
     public Document ingest(MultipartFile file) {
         // 1) 校验文件：必须是非空 .md
         String name = file.getOriginalFilename();
@@ -54,11 +56,21 @@ public class DocumentIngestService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "文件内容为空");
         }
 
-        // 2) 生成业务主键 docId，并把 Markdown 按标题切分为若干段落块
+        // 2) 生成业务主键 docId，并先写入 document 元信息（chunkCount 先占位 0），
+        //    以满足 chunk 表的外键约束（chunk.doc_id 必须已存在于 document 表）
         String docId = UUID.randomUUID().toString().replace("-", "");
+        Document doc = new Document();
+        doc.setDocId(docId);
+        doc.setName(name);
+        doc.setStatus("READY");
+        doc.setChunkCount(0);
+        doc.setCreatedAt(LocalDateTime.now());
+        documentMapper.insert(doc);
+
+        // 3) 把 Markdown 按标题切分为若干段落块
         List<MarkdownParser.ParsedSection> sections = markdownParser.parse(content);
 
-        // 3) 对每个段落块再二次切分（长块拆小 + 相邻重叠），逐块向量化并写入 chunk 表
+        // 4) 对每个段落块再二次切分（长块拆小 + 相邻重叠），逐块向量化并写入 chunk 表
         int chunkIndex = 0;
         int count = 0;
         for (MarkdownParser.ParsedSection section : sections) {
@@ -78,14 +90,9 @@ public class DocumentIngestService {
             }
         }
 
-        // 4) 写入 document 元信息（含真实 chunkCount），返回
-        Document doc = new Document();
-        doc.setDocId(docId);
-        doc.setName(name);
-        doc.setStatus("READY");
+        // 5) 回填真实 chunkCount 并返回（@Transactional 保证整段原子：任一分块失败则全部回滚）
         doc.setChunkCount(count);
-        doc.setCreatedAt(LocalDateTime.now());
-        documentMapper.insert(doc);
+        documentMapper.updateById(doc);
         return doc;
     }
 
