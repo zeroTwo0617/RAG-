@@ -19,14 +19,15 @@ async function send() {
   chatStore.add({ role: 'user', content: q })
   input.value = ''
   loading.value = true
-  // 占位 AI 消息：先给 taskId 与中间状态，轮询回来再回填内容
-  const aiMsg: ChatMessage = {
+  // 占位 AI 消息：先给 taskId 与中间状态，轮询回来再回填内容。
+  // 必须接收 add() 返回的 reactive 代理引用（而非裸对象），后续轮询里
+  // 对 aiMsg.content/status 的赋值才会经过代理 set trap 触发实时刷新。
+  const aiMsg = chatStore.add({
     role: 'ai',
     content: '',
     status: 'pending',
     taskId: '',
-  }
-  chatStore.add(aiMsg)
+  })
   scrollToBottom()
   let timer: ReturnType<typeof setInterval> | null = null
   let ticks = 0
