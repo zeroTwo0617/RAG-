@@ -29,15 +29,22 @@ async function send() {
   chatStore.add(aiMsg)
   scrollToBottom()
   let timer: ReturnType<typeof setInterval> | null = null
+  let ticks = 0
   try {
     // 1) 提交问题，后端立即返回 taskId（不阻塞生成）
     const submitRes = await ask(q, 5)
     const taskId = submitRes.data.taskId
     aiMsg.taskId = taskId
     aiMsg.queryEmbedded = true
-    // 2) 轮询任务状态，直到完成或失败
+    // 2) 轮询任务状态，直到完成或失败（最多 30 次 ≈ 24s，超时则提示，避免永久「思考中」）
     timer = setInterval(async () => {
       try {
+        if (++ticks > 30) {
+          aiMsg.content = '查询超时，请检查后端 Embedding 配置或稍后重试。'
+          if (timer) clearInterval(timer)
+          loading.value = false
+          return
+        }
         const r = await getChatResult(taskId)
         const st = r.data.status
         aiMsg.status = st

@@ -8,17 +8,28 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 /**
  * OpenAI 兼容 Embedding 接口实现。
  * 需配置 embedding.api.key；无 key 时 available()=false，由 EmbeddingService 回退本地。
+ * 注意：RestTemplate 显式设置连接/读取超时，避免远程不可达时请求无限挂起（会卡死调用线程）。
  */
 @Service
 public class OpenAiEmbeddingClient implements EmbeddingClient {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public OpenAiEmbeddingClient() {
+        this.restTemplate = new RestTemplate();
+        // 连接 5s、读取 30s 超时；远程不可达会快速失败而非永久挂起
+        var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofSeconds(5));
+        factory.setReadTimeout(Duration.ofSeconds(30));
+        this.restTemplate.setRequestFactory(factory);
+    }
 
     @Value("${embedding.api.base-url}")
     private String baseUrl;

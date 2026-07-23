@@ -25,13 +25,14 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 # Embedding 配置
-# provider: auto(有 key 用 API，否则本地兜底) | api | local
+# provider: local(本地 hash 兜底，无需 key/网络，简历 demo 推荐) | auto(有 key 用 API，否则本地) | api
 embedding:
-  provider: ${EMBEDDING_PROVIDER:auto}
+  provider: ${EMBEDDING_PROVIDER:local}
   api:
-    base-url: ${EMBEDDING_API_BASE_URL:https://api.deepseek.com/v1/chat/completions}
+    # 注意：必须是 embeddings 端点（如 https://api.openai.com/v1/embeddings），绝非 chat/completions
+    base-url: ${EMBEDDING_API_BASE_URL:https://api.openai.com/v1/embeddings}
     key: ${EMBEDDING_API_KEY:}
-    model: ${EMBEDDING_API_MODEL:deepseek-v4-flash}
+    model: ${EMBEDDING_API_MODEL:text-embedding-3-small}
   dim: 1536
 
 # JWT 配置
