@@ -44,6 +44,7 @@ async function send() {
           aiMsg.content = '查询超时，请检查后端 Embedding 配置或稍后重试。'
           if (timer) clearInterval(timer)
           loading.value = false
+          chatStore.persist()
           return
         }
         const r = await getChatResult(taskId)
@@ -58,11 +59,13 @@ async function send() {
           if (timer) clearInterval(timer)
           loading.value = false
           scrollToBottom()
+          chatStore.persist()   // 答案回填后立即落盘，刷新后不再回退到「思考中」
         } else if (st === 'failed') {
           aiMsg.content = '抱歉，查询出错，请稍后重试。'
           if (timer) clearInterval(timer)
           loading.value = false
           scrollToBottom()
+          chatStore.persist()
         }
       } catch (e) {
         aiMsg.content = '抱歉，查询出错，请稍后重试。'

@@ -9,7 +9,16 @@ const STORAGE_KEY = 'rag-chat-history'
 function load(): ChatMessage[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as ChatMessage[]) : []
+    const list = raw ? (JSON.parse(raw) as ChatMessage[]) : []
+    // 刷新/重新打开页面后，原先的轮询任务已不可能继续。
+    // 把仍停留在 pending 且内容为空（说明上次刷新/关闭时答案尚未回来）的 AI 消息
+    // 标记为失败并给出提示，避免永久显示「思考中…」
+    return list.map((m) => {
+      if (m.role === 'ai' && !m.content && (!m.status || m.status === 'pending')) {
+        return { ...m, status: 'failed', content: '上一次查询未完成（页面已刷新），请重新提问。' }
+      }
+      return m
+    })
   } catch {
     return []
   }
@@ -36,14 +45,19 @@ export const useChatStore = defineStore('chat', () => {
     localStorage.removeItem(STORAGE_KEY)
   }
 
-  // 任意消息变化都写回 localStorage（deep 监听覆盖 content/sources 的后续修改）
-  watch(
-    messages,
-    (val) => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(val))
-    },
-    { deep: true }
-  )
+  // 主动持久化当前消息列表。
+  // 轮询回填答案完成后立即调用，确保结果同步落盘，不依赖 watch 的异步 flush 时机
+  // （避免极端情况下刷新恰好发生在 deep watch 回调之前，导致存的是旧占位状态）。
+  function persist() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.value))
+    } catch {
+      // 隐私模式禁用存储或容量已满时静默忽略，不影响内存中的会话
+    }
+  }
 
-  return { messages, add, reset }
+  // 任意消息变化都写回 localStorage（deep 监听覆盖 content/sources 的后续修改）
+  watch(messages, persist, { deep: true })
+
+  return { messages, add, reset, persist }
 })
