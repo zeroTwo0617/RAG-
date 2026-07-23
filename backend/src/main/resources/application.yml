@@ -35,6 +35,14 @@ embedding:
     model: ${EMBEDDING_API_MODEL:text-embedding-3-small}
   dim: 1536
 
+# LLM 生成配置（M2 流式生成答案用，OpenAI 兼容协议，如 DeepSeek）
+# base-url 须以 /v1 结尾，代码会拼 /chat/completions；key 走环境变量，切勿硬编码进仓库
+llm:
+  api:
+    base-url: ${LLM_API_BASE_URL:https://api.deepseek.com/v1}
+    key: ${LLM_API_KEY:${EMBEDDING_API_KEY:}}
+    model: ${LLM_MODEL:deepseek-chat}
+
 # JWT 配置
 jwt:
   secret: ${JWT_SECRET:change-me-in-production-please-1234567890}

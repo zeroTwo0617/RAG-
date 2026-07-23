@@ -56,7 +56,7 @@ export interface ChatSubmitResponse {
 
 // 轮询问答结果：前端按 taskId 轮询拿到的最终状态与答案
 export interface ChatTaskResult {
-  status: 'completed' | 'failed'
+  status: 'pending' | 'generating' | 'completed' | 'failed'
   answer: string
   sources: ChunkSearchResult[]
   queryEmbedded: boolean
@@ -75,6 +75,6 @@ export interface ChatMessage {
   content: string
   sources?: ChunkSearchResult[]    // 仅 ai 消息携带引用来源
   queryEmbedded?: boolean
-  status?: 'pending' | 'completed' | 'failed'  // 异步任务轮询状态：生成中/完成/失败
+  status?: 'pending' | 'generating' | 'completed' | 'failed'  // 异步任务状态：排队/生成中/完成/失败
   taskId?: string                  // 关联的问答任务 ID（轮询用）
 }

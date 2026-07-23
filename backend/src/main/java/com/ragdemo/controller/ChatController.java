@@ -8,12 +8,16 @@ import com.ragdemo.service.ChatTaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.time.Duration;
 
 @RestController
 @RequestMapping("/api")
@@ -44,12 +48,34 @@ public class ChatController {
     }
 
     @GetMapping("/chat/result")
-    @Operation(summary = "轮询问答结果")
+    @Operation(summary = "轮询问答结果（SSE 不可用时的降级路径）")
     public Result<ChatTaskResult> result(@RequestParam String taskId) {
         ChatTaskResult task = chatTaskService.get(taskId);
         if (task == null) {
             return Result.error(404, "任务不存在或已过期");
         }
         return Result.success(task);
+    }
+
+    @GetMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "SSE 流式问答（M2）：按 taskId 订阅生成过程，逐字推送")
+    public SseEmitter stream(@RequestParam String taskId) {
+        SseEmitter emitter = new SseEmitter(Duration.ofMinutes(2));
+        ChatTaskResult task = chatTaskService.get(taskId);
+        if (task == null) {
+            try {
+                emitter.send(SseEmitter.event().name("error")
+                        .data("{\"type\":\"error\",\"message\":\"任务不存在或已过期\"}"));
+            } catch (Exception ignore) {
+                // 忽略：连接可能已关闭
+            }
+            emitter.complete();
+            return emitter;
+        }
+        // 注册后由 ChatTaskService 负责：连接时 flush 历史、生成中实时推增量、结束推 done
+        chatTaskService.registerEmitter(taskId, emitter);
+        emitter.onCompletion(() -> chatTaskService.removeEmitter(taskId));
+        emitter.onTimeout(() -> chatTaskService.removeEmitter(taskId));
+        return emitter;
     }
 }

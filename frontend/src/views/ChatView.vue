@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
-import { ask, getChatResult } from '@/api/chat'
+import { ask, getChatResult, openChatStream } from '@/api/chat'
 import { useChatStore } from '@/store/chat'
 import MessageBubble from '@/components/MessageBubble.vue'
 import type { ChatMessage } from '@/types'
@@ -10,18 +10,16 @@ const input = ref('')           // 输入框绑定值
 const loading = ref(false)      // 是否正在请求（控制"思考中"与按钮 loading）
 const scrollRef = ref<HTMLElement | null>(null)  // 聊天滚动容器，用于自动滚到底部
 
-// 发送逻辑：先压入用户消息与一条空 AI 占位（带 taskId），再轮询任务状态异步回填答案。
-// 任务轮询让发送与响应解耦——用户消息即时上屏，AI 气泡实时显示「检索中 / 思考中 / 完成」，
-// 答案回来立即呈现，不必干等整段请求返回（也为 M2 流式生成预留了同样的轮询通道）。
+// 发送逻辑（M2）：先压入用户消息与一条空 AI 占位（带 taskId），再：
+// ① 优先订阅 SSE 流式接口，后端逐字推送时实时 append 到 aiMsg.content（打字机效果）；
+// ② 若 SSE 不可用（如浏览器/网络不支持），回退到轮询 /chat/result 拿最终结果。
+// 必须接收 add() 返回的 reactive 代理引用，后续对其 content/status 的赋值才会触发实时刷新。
 async function send() {
   const q = input.value.trim()
   if (!q || loading.value) return
   chatStore.add({ role: 'user', content: q })
   input.value = ''
   loading.value = true
-  // 占位 AI 消息：先给 taskId 与中间状态，轮询回来再回填内容。
-  // 必须接收 add() 返回的 reactive 代理引用（而非裸对象），后续轮询里
-  // 对 aiMsg.content/status 的赋值才会经过代理 set trap 触发实时刷新。
   const aiMsg = chatStore.add({
     role: 'ai',
     content: '',
@@ -29,54 +27,93 @@ async function send() {
     taskId: '',
   })
   scrollToBottom()
-  let timer: ReturnType<typeof setInterval> | null = null
-  let ticks = 0
   try {
     // 1) 提交问题，后端立即返回 taskId（不阻塞生成）
     const submitRes = await ask(q, 5)
     const taskId = submitRes.data.taskId
     aiMsg.taskId = taskId
     aiMsg.queryEmbedded = true
-    // 2) 轮询任务状态，直到完成或失败（最多 30 次 ≈ 24s，超时则提示，避免永久「思考中」）
-    timer = setInterval(async () => {
-      try {
-        if (++ticks > 30) {
-          aiMsg.content = '查询超时，请检查后端 Embedding 配置或稍后重试。'
-          if (timer) clearInterval(timer)
-          loading.value = false
-          chatStore.persist()
-          return
-        }
-        const r = await getChatResult(taskId)
-        const st = r.data.status
-        aiMsg.status = st
-        if (st === 'completed') {
-          const ans = r.data.answer
-          aiMsg.content = ans && ans.trim()
-            ? ans
-            : '未在知识库中找到相关内容，请先上传笔记，或换个问法试试。'
-          aiMsg.sources = r.data.sources
-          if (timer) clearInterval(timer)
-          loading.value = false
-          scrollToBottom()
-          chatStore.persist()   // 答案回填后立即落盘，刷新后不再回退到「思考中」
-        } else if (st === 'failed') {
-          aiMsg.content = '抱歉，查询出错，请稍后重试。'
-          if (timer) clearInterval(timer)
-          loading.value = false
-          scrollToBottom()
-          chatStore.persist()
-        }
-      } catch (e) {
-        aiMsg.content = '抱歉，查询出错，请稍后重试。'
-        if (timer) clearInterval(timer)
-        loading.value = false
-      }
-    }, 800)
+    aiMsg.status = 'generating'
+    // 2) SSE 流式优先；异常则降级为轮询
+    try {
+      await streamChat(taskId, aiMsg)
+    } catch (e) {
+      await pollFallback(taskId, aiMsg)
+    }
   } catch (e) {
-    aiMsg.content = '抱歉，查询出错，请稍后重试。'
+    aiMsg.content = '抱歉，提交失败，请稍后重试。'
+    aiMsg.status = 'failed'
     loading.value = false
+    chatStore.persist()
   }
+}
+
+// SSE 流式订阅：delta 实时追加，done 回填来源并收尾
+function streamChat(taskId: string, aiMsg: ChatMessage): Promise<void> {
+  return new Promise((resolve) => {
+    // 整体超时保护（90s 无 done 则中断并降级）
+    const timeout = setTimeout(() => ctrl.abort(), 90000)
+    const ctrl = openChatStream(taskId, {
+      onDelta: (text) => {
+        aiMsg.content += text          // 逐字追加（响应式代理，实时刷新）
+        scrollToBottom()
+      },
+      onDone: (payload) => {
+        clearTimeout(timeout)
+        aiMsg.sources = payload.sources
+        aiMsg.content = payload.answer || aiMsg.content
+        aiMsg.status = 'completed'
+        loading.value = false
+        scrollToBottom()
+        chatStore.persist()             // 完成后立即落盘，刷新不再回退
+        resolve()
+      },
+      onError: (msg) => {
+        clearTimeout(timeout)
+        aiMsg.content = msg
+        aiMsg.status = 'failed'
+        loading.value = false
+        chatStore.persist()
+        resolve()
+      },
+    })
+  })
+}
+
+// 降级路径：SSE 不可用时轮询 /chat/result，直到 completed/failed（最多 40 次 ≈ 32s）
+async function pollFallback(taskId: string, aiMsg: ChatMessage) {
+  let ticks = 0
+  while (ticks++ < 40) {
+    await new Promise((r) => setTimeout(r, 800))
+    try {
+      const r = await getChatResult(taskId)
+      const st = r.data.status
+      if (st === 'completed') {
+        const ans = r.data.answer
+        aiMsg.content = ans && ans.trim()
+          ? ans
+          : '未在知识库中找到相关内容，请先上传笔记，或换个问法试试。'
+        aiMsg.sources = r.data.sources
+        aiMsg.status = 'completed'
+        loading.value = false
+        scrollToBottom()
+        chatStore.persist()
+        return
+      } else if (st === 'failed') {
+        aiMsg.content = '抱歉，查询出错，请稍后重试。'
+        aiMsg.status = 'failed'
+        loading.value = false
+        chatStore.persist()
+        return
+      }
+    } catch (e) {
+      // 轮询间隔中偶发网络抖动，忽略继续
+    }
+  }
+  aiMsg.content = '查询超时，请稍后重试。'
+  aiMsg.status = 'failed'
+  loading.value = false
+  chatStore.persist()
 }
 
 // 滚动到底部（nextTick 确保 DOM 已更新）

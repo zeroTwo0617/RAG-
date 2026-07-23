@@ -12,7 +12,7 @@ defineProps<{ message: ChatMessage }>()
     <div class="avatar">{{ message.role === 'user' ? '🧑' : '🤖' }}</div>
     <div class="bubble">
       <div class="content" v-if="message.content">{{ message.content }}</div>
-      <div class="content muted" v-else-if="message.role === 'ai' && message.status === 'pending'">思考中…</div>
+      <div class="content muted" v-else-if="message.role === 'ai' && (message.status === 'pending' || message.status === 'generating')">思考中…</div>
       <div class="content muted" v-else>…</div>
       <SourcePanel
         v-if="message.role === 'ai' && message.sources && message.sources.length"
