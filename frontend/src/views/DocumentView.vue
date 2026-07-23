@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { uploadDocument, listDocuments, getDocument, deleteDocument } from '@/api/document'
 import { useDocumentStore } from '@/store/document'
 import type { DocumentDetailVO } from '@/types'
 
 const store = useDocumentStore()
+const router = useRouter()
 const loading = ref(false)          // 列表加载中
 const detailVisible = ref(false)    // 详情弹窗显隐
 const detail = ref<DocumentDetailVO | null>(null)  // 当前查看的文档详情
@@ -26,7 +28,13 @@ async function load(page = 1) {
 async function onUpload(file: { raw: File }) {
   try {
     const res = await uploadDocument(file.raw)
-    ElMessage.success(`入库成功：${res.data.name}，共 ${res.data.chunkCount} 个分块`)
+    // 入库只是第一步（拆解分块），真正出答案在「问答」页。上传成功后明确引导用户去提问，
+    // 避免"拆完就停住、不知道下一步"的体验断点
+    ElMessageBox.confirm(
+      `已成功入库「${res.data.name}」，共 ${res.data.chunkCount} 个分块。\n现在去问答页提问吗？`,
+      '入库成功',
+      { confirmButtonText: '去提问 →', cancelButtonText: '稍后', type: 'success' }
+    ).then(() => router.push('/chat')).catch(() => {})
     load()  // 刷新列表
   } catch (e) {
     // 错误已由请求拦截器统一弹提示，这里无需重复处理
