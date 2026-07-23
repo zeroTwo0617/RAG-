@@ -43,10 +43,12 @@ function scrollToBottom() {
   })
 }
 
-// 键盘事件：Enter 发送，Shift+Enter 换行
-function onEnter(e: KeyboardEvent) {
-  if (!e.shiftKey) {
-    e.preventDefault()
+// 键盘事件：仅在「Enter 且非 Shift」且不在输入法组合中时才发送；其余按键一律放行，
+// 避免误拦截导致输入框无法复制/粘贴（Ctrl+C/V），也避免输入法选词过程误发送
+function onKeydown(e: KeyboardEvent) {
+  if (e.isComposing) return            // 拼音/输入法上屏过程中不拦截
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()                  // 仅拦截 Enter 的默认换行，改为发送
     send()
   }
 }
@@ -68,7 +70,7 @@ function onEnter(e: KeyboardEvent) {
         type="textarea"
         :rows="3"
         placeholder="输入问题，Enter 发送，Shift+Enter 换行"
-        @keydown="onEnter"
+        @keydown="onKeydown"
       />
       <el-button type="primary" :loading="loading" @click="send">发送</el-button>
     </div>
